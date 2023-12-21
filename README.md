@@ -22,5 +22,6 @@ Also "cool"
 - Challenges
 - Problem it hopes to solve
 - Intended use
+- Credits
 
 
