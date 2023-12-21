@@ -1,0 +1,157 @@
+---
+title: "Introduction to ggplot - Part 1"
+author: "Jack Forster"
+date: "2023-02-16"
+output: html_document
+---
+
+
+```{r libraries, message = FALSE, warning= FALSE, echo = FALSE, include = FALSE}
+library(tidyverse)
+library(readxl)
+library(knitr)
+
+setwd("~/R Training FR/Module 7 - Introduction to ggplot part 1/")  # change this to where you have the data files (below) saved!
+```
+
+```{r load data, message = FALSE, warning= FALSE, echo = FALSE, include = FALSE}
+data_soc_science <- read_excel("data_soc_science.xlsx")
+data_soc_science[,c("Question_1","Question_2","Question_3","Question_4","Question_5")]<-lapply(data_soc_science[,c("Question_1","Question_2","Question_3","Question_4","Question_5")], function(x)  factor(x, levels= c("Strongly Disagree","Disagree","Neither","Agree","Strongly Agree")))
+data_tree_growth <- read.csv("data_tree_growth.csv")
+data_tree_path <- read_excel("data_tree_path.xlsx", sheet = "long")
+data_eDNA <- read.csv("data_eDNA.csv")
+```
+
+
+## Example 1
+
+
+```{r}
+#str(data_tree_growth)
+#names(data_tree_growth)
+#glimpse(data_tree_growth)
+
+# Using the "data_tree_growth" data set, draw a scatterplot with tree species on the x axis and diameter at 2020 on the y axis. Try using geom_point versus geom_jitter - which is more informative
+
+gg1 <- ggplot(data_tree_growth, aes(x = Tree_Species, y = Diameter_2020)) +
+  geom_point()
+gg1
+
+gg2 <- ggplot(data_tree_growth, aes(x = Tree_Species, y = Diameter_2020)) +
+  geom_jitter()
+gg2
+
+
+# Trickier - Overlay a boxplot on the raw data, and use colour = "green" to make it stand out
+
+gg3 <- ggplot(data_tree_growth, aes(x = Tree_Species, y = Diameter_2020)) +
+  geom_jitter() +
+  geom_boxplot(fill=NA,colour="green",outlier.colour = NA)
+gg3
+
+
+```
+
+
+## Example 2
+
+
+```{r}
+#str(data_soc_science)
+#names(data_soc_science)
+#glimpse(data_soc_science)
+
+# Using the "data_soc_science" data set, first group by Age and Question 4 responses to get counts by age and response category. Plot the counts, with Question_4 categories on the x axis, counts on the y axis and facet_wrap(~Age) to separate by age
+
+data_soc_sci_summary <-
+  data_soc_science %>% 
+  group_by(Age, Question_4) %>% 
+  summarise(Count = n())
+
+gg4 <- ggplot(data_soc_sci_summary, aes(x = Question_4, y = Count)) +
+  theme_bw() + 
+  facet_wrap(~Age, nrow = 2) + 
+  geom_col() 
+
+gg4
+
+```
+
+
+## Example 3
+
+
+```{r}
+#str(data_tree_path)
+#names(data_tree_path)
+#glimpse(data_tree_path)
+
+# Using the "data_tree_path" data set, plot the lesion size on the y axis and position on the x axis, use facet_wrap to separate by treatment
+
+gg5 <- ggplot(data_tree_path, aes(x = Position, y = Lesion)) +
+  theme_bw() + 
+  facet_wrap(~Treatment, nrow = 2) + 
+  geom_jitter(width = 0.2) 
+
+gg5
+
+
+```
+
+## Example 4
+
+
+```{r}
+#str(data_tree_growth)
+#names(data_tree_growth)
+#glimpse(data_tree_growth)
+table(data_tree_growth$Diameter_1980)
+
+# Using the "data_tree_growth" data set, try to repeat the "tricky example" in the tutorial, but plotting line charts of diameter rather than height
+
+data_tree_growth_summary <-
+  data_tree_growth %>% select(Tree_Species, Block, Plot, Tree, contains("Diameter")) %>%
+  select(-Diameter_1980) %>% 
+  pivot_longer(Diameter_1985:Diameter_2020, names_to = "Year", values_to = "Di_m",
+    names_prefix = "Diameter_") %>% 
+  mutate(Year = as.numeric(Year), Tree_ID = paste (Tree_Species, Block, Plot, Tree, sep = ":"))
+  
+str(data_tree_growth_summary)
+
+gg6 <- ggplot(data_tree_growth_summary, aes(x = Year, y = Di_m, group = Tree_ID)) +
+  theme_bw() + 
+  facet_wrap(~Tree_Species, nrow = 2) + 
+  geom_line(alpha = 0.1) +
+  labs(y = "Tree diameter (m)", x = "Year", title = "A tricky example")
+  
+gg6
+
+```
+
+## Example 5
+
+
+```{r}
+#str(data_eDNA)
+#names(data_eDNA)
+#glimpse(data_eDNA)
+
+# Using the "data_eDNA" data set, try to repeat the "Another tricky example" in the tutorial, but plotting a scatterplot of Age on the x axis rather than BL/C
+
+data_eDNA_summary <-
+  data_eDNA %>% select(-X) %>%
+  pivot_longer(Species_1:Species_200, names_to = "Species", values_to = "Read") %>% 
+  mutate(Presence = ifelse(Read>0,1,0)) %>% 
+  group_by(Site, Tree_Type, Age) %>% 
+  summarise(sum_presence = sum(Presence, na.rm=TRUE), total= n())
+  
+str(data_eDNA_summary)
+
+gg15 <- ggplot(data_eDNA_summary, aes(x = Age, y = sum_presence/total)) +
+  theme_bw() + 
+  geom_jitter(width = 0.3) +
+  labs(y = "Proportion of total species present", x = "Age", title = "A tricky example")
+  
+gg15
+
+```
